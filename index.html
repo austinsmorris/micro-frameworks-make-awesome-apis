@@ -173,12 +173,6 @@
         </section>
       </section>
 
-
-
-
-
-
-
       <section>
         <section>
           <h2>An awesome API is...</62>
@@ -194,12 +188,14 @@
             <p>(slower and more fragile)</p>
           </div>
         </section>
-
-
-
-
-
-
+        <section>
+          <h3>Code is easily tested when..</h3>
+          <ul>
+            <li class="fragment">It is isolated and singular in purpose.</li>
+            <li class="fragment">External dependencies are injected.</li>
+            <li class="fragment">Each piece has a simple public api.</li>
+          </ul>
+        </section>
       </section>
 
       <section>
@@ -219,12 +215,6 @@
           <h4 class="fragment">Small highly-cohesive objects with a single responsibility.</h4>
           <h4 class="fragment">DRY, KISS, SOLID, etc...</h4>
         </section>
-
-
-
-
-
-
       </section>
 
       <section>
@@ -236,18 +226,15 @@
           <h2>We need an IOC layer!</h2>
           <h4>(Let's just call it the container.)</h4>
         </section>
-
-
-
-
-
+        <section>
+          <h3>The container will..</h3>
+          <ul>
+            <li class="fragment">Give us access to our domain services.</li>
+            <li class="fragment">Resolve our dependency abstractions.</li>
+            <li class="fragment">Glue layers of our application together.</li>
+          </ul>
+        </section>
       </section>
-
-
-
-
-
-
 
       <section>
         <section>
@@ -305,6 +292,11 @@
             <li class="fragment"><h4>Better domain access.</h4></li>
           </ul>
         </section>
+        <section>
+          <h2>Paul M. Jones:</h2>
+          <p>"HTTP middleware is a <span style="font-weight: bold;">user interface</span> decoration system, where the user interface is the HTTP request (input) and HTTP response (output)."</p>
+          <p>"HTTP middleware is <span style="font-weight: bold;">not for your Domain work</span>. The middleware is a path in to, and out of, the core Domain."</p>
+        </section>
       </section>
 
       <section>
@@ -339,7 +331,373 @@
         <section>
           <h2>I haz teh codez!</h2>
         </section>
+        <section>
+          <h2>Micro-frameworks 101</h2>
+        </section>
+        <section>
+          <h4>Hello Silex!</h4>
+          <pre><code>
+use Silex\Application;
+use Symfony\Component\HttpFoundation\Response;
+
+$app = new Application();
+
+$app->get('/hello/world', function () {
+  return new Response('Hello World!');
+});
+
+$app->run();
+          </code></pre>
+        </section>
+        <section>
+          <h4>Hello Lumen!</h4>
+          <pre><code>
+use Symfony\Component\HttpFoundation\Response;
+
+$app = require __DIR__.'/../bootstrap/app.php';
+
+$app->get('/hello/world', function () {
+  return new Response('Hello World!');
+});
+
+$app->run();
+          </code></pre>
+        </section>
+        <section>
+          <h4>Non-trivial Silex!</h4>
+          <pre><code>
+$app['my.resource.repository'] = $app->share(function (Application $app) {
+  return new My\Resource\Repository($app['my.db.connection']);
+});
+
+$app->get('my/resource/{id}', function ($app, $request, $id) {
+  $token = $app['my.auth.token.repository']->find($request->get('access_token'));
+  if (!$token) {
+    return new Response('', Response::HTTP_UNAUTHORIZED);
+  }
+
+  $resource = $app['my.resource.repository']->find($id);
+  if (!$resource) {
+    return new Response('', Response::HTTP_NOT_FOUND);
+  }
+
+  return new Response(json_encode($resource->toArray()));
+});
+          </code></pre>
+        </section>
+        <section>
+          <h4>Non-trivial Lumen!</h4>
+          <pre><code style="margin-left: -24px; margin-right: -24px;">
+$app->bind(Repository::class, function  () {
+  return new My\Resource\Repository();
+});
+
+$app->get('my/resource/{id}', function ($id) use ($app) {
+  $token = $app['My\Auth\Token\Repository']->find($app['request']->get('access_token'));
+  if (!$token) {
+    return new Response('', Response::HTTP_UNAUTHORIZED);
+  }
+
+  $resource = $app[Repository::class]->find(123);
+  if (!$resource) {
+    return new Response('', Response::HTTP_NOT_FOUND);
+  }
+
+  return new Response(json_encode($resource->toArray()));
+});
+          </code></pre>
+        </section>
+        <section>
+          <h2>It's a trap!</h2>
+          <br>
+          <h3>Let's look again...</h3>
+        </section>
+        <section>
+          <h4>Non-trivial Silex!</h4>
+          <pre><code>
+$app['my.resource.repository'] = $app->share(function (Application $app) {
+  return new My\Resource\Repository($app['my.db.connection']);
+});
+
+$app->get('my/resource/{id}', function ($app, $request, $id) {
+  $token = $app['my.auth.token.repository']->find($request->get('access_token'));
+  if (!$token) {
+    return new Response('', Response::HTTP_UNAUTHORIZED);
+  }
+
+  $resource = $app['my.resource.repository']->find($id);
+  if (!$resource) {
+    return new Response('', Response::HTTP_NOT_FOUND);
+  }
+
+  return new Response(json_encode($resource->toArray()));
+});
+          </code></pre>
+        </section>
+        <section>
+          <h4>Non-trivial Lumen!</h4>
+          <pre><code style="margin-left: -24px; margin-right: -24px;">
+$app->bind(Repository::class, function  () {
+  return new My\Resource\Repository();
+});
+
+$app->get('my/resource/{id}', function ($id) use ($app) {
+  $token = $app['My\Auth\Token\Repository']->find($app['request']->get('access_token'));
+  if (!$token) {
+    return new Response('', Response::HTTP_UNAUTHORIZED);
+  }
+
+  $resource = $app[Repository::class]->find(123);
+  if (!$resource) {
+    return new Response('', Response::HTTP_NOT_FOUND);
+  }
+
+  return new Response(json_encode($resource->toArray()));
+});
+          </code></pre>
+        </section>
+        <section>
+          <h4>Silex Controllers</h4>
+          <pre><code>
+$app->register(new Silex\Provider\ServiceControllerServiceProvider());
+
+$app['my.resource.controller'] = $app->share(function ($app) {
+  return new \My\Resource\Controller($app['my.resource.repository']);
+});
+
+$app->get('my/resource/{id}', 'my.resource.controller:get');
+          </code></pre>
+        </section>
+        <section>
+          <pre><code style="max-height: 500px;">namespace My\Resource;
+
+use My\Resource\RepositoryInterface;
+use Symfony\Component\HttpFoundation\Response;
+
+class Controller
+{
+  protected $repo;
+
+  public function __construct(RepositoryInterface $repo)
+  {
+    $this->repo = $repo;
+  }
+
+  public function get($app, $request, $id)
+  {
+    $resource = $this->repo->find($id);
+    if (!$resource) {
+      return new Response('', Response::HTTP_NOT_FOUND);
+    }
+
+    return new Response(json_encode($resource->toArray()));
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Lumen Controllers</h4>
+          <pre><code>
+use My\Resource\Repository;
+use My\Resource\RepositoryInterface;
+
+$app->bind(RepositoryInterface::class, Repository::class);
+
+$app->get('my/resource/{id}', 'ResourceController@get');
+          </code></pre>
+        </section>
+        <section>
+          <pre><code style="max-height: 500px;">namespace App\Http\Controllers;
+
+use Laravel\Lumen\Routing\Controller as BaseController;
+use My\Resource\RepositoryInterface;
+use Symfony\Component\HttpFoundation\Response;
+
+class ResourceController extends BaseController
+{
+  protected $repo;
+
+  public function __construct(RepositoryInterface $repo)
+  {
+    $this->repo = $repo;
+  }
+
+  public function get($id)
+  {
+    $resource = $this->repo->find($id);
+    if (!$resource) {
+      return new Response('', Response::HTTP_NOT_FOUND);
+    }
+
+    return new Response(json_encode($resource->toArray()));
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Silex Container</h4>
+          <pre><code>
+use Pimple;
+// ...
+
+class Application extends Pimple implements HttpKernelInterface, TerminableInterface
+{
+  // ...
+}
+          </code></pre>
+        </section>
+        <section>
+          <pre><code>
+$app['my.parameter'] = 123;
+
+$app['my.service'] = function () { /* This function will be invoked */ };
+
+$app['my.shared.service'] = $app->share(function ($app) {
+  return $app['my.service']  // only instantiated once!
+});
+
+$foo = $app['the.thing.i.want'];
+          </code></pre>
+        </section>
+        <section>
+          <h4>Lumen Container</h4>
+          <pre><code>
+use Illuminate\Container\Container;
+// ...
+
+class Application extends Container implements ApplicationContract, HttpKernelInterface
+{
+  // ...
+}
+          </code></pre>
+        </section>
+        <section>
+          <pre><code>
+$app->instance('my.parameter', 123);
+
+$app->bind('My\Service',  function () { /* This function will be invoked */ };
+
+$app->singleton('My\Shared\Service', function ($app) {
+  return $app['My\Service']  // only instantiated once!
+});
+
+$app->bind('My\Interface', 'My\Implementation');
+
+$foo = $app['My\Thing'];
+$bar = $app->make('My\Other\Thing');
+          </code></pre>
+        </section>
+        <section>
+          <h3>Plus...</h3>
+          <h4 class="fragment">Auto-resolving</h4>
+          <h4 class="fragment">Contextual Bindings</h4>
+          <h4 class="fragment">Tagging</h4>
+          <h4 class="fragment">Container Events</h4>
+        </section>
+        <section>
+          <h4>Silex Middleware</h4>
+          <pre><code>
+$app->before('my.before.routing.middleware:doAThing');
+
+$app->get('/my/resource', 'my.resource.controller:get')
+  ->before('my.before.this.route.middlware:doSomething')
+  ->after('my.after.this.route.middlware:doSomethingElse');
+
+$app->after('my.after.route.after.middlewares:doMore');
+
+$app->finish('my.after.response.is.returned.middleare:doSoemthingSlow');
+          </code></pre>
+        </section>
+        <section>
+          <pre><code>
+namespace My\Middlware;
+
+class BeforeRouteMiddlware
+{
+  protected $dependecy;
+
+  public function __construct($dependency)
+  {
+    $this->dependency = $dependency;
+  }
+
+  public function doSomething($request, $app)
+  {
+    // do something..
+  }
+{
+          </code></pre>
+        </section>
+        <section>
+          <h4>Lumen Middleware</h4>
+          <pre><code>
+$app->middleware([
+  App\Http\Middleware\BeforeRoutingMiddleware::class,
+  App\Http\Middleware\AfterRoutingMiddleware::class,
+  App\Http\Middleware\TerminableMiddleware::class,
+]);
+
+$app->routeMiddleware([
+  'before' => App\Http\Middleware\BeforeRouteMiddleware::class,
+  'after' => App\Http\Middleware\AfterRouteMiddleware::class,
+]);
+
+$app->get('my/resource/{id}', [
+  'uses' => 'ResourceController@get',
+  'middleware' => ['before', 'after'],
+]);
+          </code></pre>
+        </section>
+        <section>
+          <pre><code>
+use Closure;
+
+class BeforeMiddleware
+{
+  public function handle($request, Closure $next)
+  {
+    // do something here
+    return $next($request);
+  }
+}
+          </code></pre>
+          <pre><code>
+use Closure;
+
+class AfterMiddleware
+{
+  public function handle($request, Closure $next)
+  {
+    $response = $next($request);
+    // do something here
+    return $response;
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <pre><code>
+use Closure;
+
+class TerminableMiddleware
+{
+  public function handle($request, Closure $next)
+  {
+    return $next($request);
+  }
+
+  public function terminate($request, $response)
+  {
+    // do stuff after the request was sent
+  }
+}
+          </code></pre>
+        </section>
       </section>
+
+
+
+
 
       <section>
         <section>
