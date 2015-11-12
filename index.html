@@ -389,7 +389,7 @@ $app->get('my/resource/{id}', function ($app, $request, $id) {
           <h4>Non-trivial Lumen!</h4>
           <pre><code style="margin-left: -24px; margin-right: -24px;">
 $app->bind(Repository::class, function  () {
-  return new My\Resource\Repository();
+  return new My\Resource\Repository($app['my.db.connection']);
 });
 
 $app->get('my/resource/{id}', function ($id) use ($app) {
@@ -438,7 +438,7 @@ $app->get('my/resource/{id}', function ($app, $request, $id) {
           <h4>Non-trivial Lumen!</h4>
           <pre><code style="margin-left: -24px; margin-right: -24px;">
 $app->bind(Repository::class, function  () {
-  return new My\Resource\Repository();
+  return new My\Resource\Repository($app['my.db.connection']);
 });
 
 $app->get('my/resource/{id}', function ($id) use ($app) {
@@ -762,7 +762,7 @@ class TerminableMiddleware
 
       <section>
         <section>
-          <h2>Serializtion</h2>
+          <h2>Serialization</h2>
         </section>
       </section>
 
