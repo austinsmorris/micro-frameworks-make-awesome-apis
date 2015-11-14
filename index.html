@@ -70,7 +70,7 @@
           <h2>For Free:</h2>
           <h3>Co-Author of <a href="https://peridot-php.github.io/">Peridot</a></h3>
           <p style="margin-left: -24px; margin-right: -24px;">The highly extensible, highly enjoyable, BDD testing framework for PHP.</p>
-          <p>(Code samples in this presentation use peridot!)</p>
+          <p>(It's how I test the things in this presentation!)</p>
         </section>
       </section>
 
@@ -288,7 +288,7 @@
           <h3>small, reusable pieces.</h3>
           <ul>
             <li class="fragment"><h4>Better testability.</h4></li>
-            <li class="fragment"><h4>Better OOP</h4></li>
+            <li class="fragment"><h4>Better OOP.</h4></li>
             <li class="fragment"><h4>Better domain access.</h4></li>
           </ul>
         </section>
@@ -695,81 +695,388 @@ class TerminableMiddleware
         </section>
       </section>
 
-
-
-
-
       <section>
         <section>
-          <h2>Authentication</h2>
+          <h2>Auth[entication|orization]</h2>
+          <h4>The user is who they claim to be.</h4>
+          <h4>The user is allowed to do this.</h4>
         </section>
-      </section>
-
-      <section>
         <section>
-          <h2>Authorization</h2>
+          <h4>Lumen</h4>
+          <pre><code>
+$app->routeMiddleware([
+  'auth' => App\Http\Middleware\ResourceAuthMiddleware::class,
+]);
+
+$app->post('my/resource', [
+  'uses' => 'ResourceController@post',
+  'middleware' => ['auth'],
+]);
+          </code></pre>
+        </section>
+        <section>
+          <pre><code style="max-height: 500px;">
+class ResourceAuthMiddleware
+{
+  protected $tokenRepo;
+
+  public function __construct(TokenRepository $tokenRepo)
+  {
+    $this->tokenRepo = $tokenRepo;
+  }
+
+  public function handle($request, Closure $next)
+  {
+    $token = $this->tokenRepo->find($request->get('access_token'));
+    if (!$token) {
+      return new Response('Please login.', Response::HTTP_UNAUTHORIZED);
+    }
+
+    if (!$token->hasPermission('resource')) {
+      return new Response('Go Away!', Response::HTTP_FORBIDDEN);
+    }
+
+    return $next($request);
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Use the right status codes!</h4>
+          <ul class="fragment">
+            <li>401: Unauthorized</li>
+            <li>403: Forbidden</li>
+          </ul><br><br>
+          <h4 class="fragment">Headers are cool too!</h4>
+          <ul class="fragment">
+            <li>Authorize</li>
+          </ul>
         </section>
       </section>
 
       <section>
         <section>
           <h2>Content Negotiation</h2>
+          <h4>Make sure the computers are</h4>
+          <h4>speaking the same language.</h4>
+        </section>
+        <section>
+          <h4>Silex</h4>
+          <pre><code>
+$app['ContentNegotiation'] = $app->share(function () {
+  return new ContentNegotiation();
+)};
+          </code></pre>
+          <pre><code>
+$app->post('/my/resource', 'ResourceController:post')
+  ->before('ContentNegotiation:checkForJson');
+          </code></pre>
+          <pre><code>
+class ContentNegotiation
+{
+  public function checkForJson(Request $request)
+  {
+    if (!strstr('application/json', $request->headers->get('Content-Type'))) {
+        return new Response('', Response::HTTP_UNSUPPORTED_MEDIA_TYPE);
+    }
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Use the right status codes!</h4>
+          <ul class="fragment">
+            <li>406: Not Acceptable</li>
+            <li>415: Unsupported Media Type</li>
+          </ul><br><br>
+          <h4 class="fragment">Use the right headers!</h4>
+          <ul class="fragment">
+            <li>Accept</li>
+            <li>Content-Type</li>
+          </ul>
         </section>
       </section>
 
       <section>
         <section>
           <h2>De-serialization</h2>
+          <div class="fragment">
+            <h4>Covert the raw request data (JSON)</h4>
+            <h4>into a native type (array|object).</h4>
+          </div>
         </section>
         <section>
+          <h3>Lumen</h3>
           <pre><code>
-            $app->post('/my/resource', 'my.controler:myAction')
-                ->before('json.decode.middleware:decode');
-          </code></pre>
-        </section>
-        <section>
-          <pre><code>
-            use Peridot\Leo\Interfaces\Assert;
+$app->routeMiddleware([
+  'authenticate' => App\Http\Middleware\Authentication::class,
+  'authorize' => App\Http\Middleware\ResourceAuthorization::class,
+  'negotiateContent' => App\Http\Middleware\ContentNegotiation::class,
+  'jsonDecode' => App\Http\Middleware\JsonDecode::class,
+]);
 
-            $assert = new Assert();
-            $assert->typeOf('string', 'hello', 'is string');
-            $assert->operator(5, '<', 6, 'should be less than');
-            $assert->isResource(tempfile());
-            $assert->throws(function() {
-            throw new Exception("exception");
-            }, 'Exception');
+$app->post('my/resource', [
+  'uses' => 'ResourceController@post',
+  'middleware' => ['authenticate', 'authorize', 'negotiateContent', 'jsonDecode'],
+]);
           </code></pre>
+        </section>
+        <section>
+          <pre><code>
+class JsonDecode
+{
+  protected $app;
+
+  public function __construct(Application $app)
+  {
+    $this->app = $app;
+  }
+
+  public function handle($request, Closure $next)
+  {
+    $decodedData = json_decode($request->getContent(), true);
+    if ($data === null) {
+      return new Response('Invalid json content.', Response::HTTP_BAD_REQUEST);
+    }
+
+    $this->app->instance('request_data', $decodedData);  // optional
+    $next($request, $decodedData)
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Use the right status code!</h4>
+            <ul class="fragment">
+              <li>400: Bad Request</li>
+            </ul><br><br>
+          <h4 class="fragment">Put the data somewhere useful.</h4>
+          <ul class="fragment">
+            <li>In the container.</li>
+            <li>On the request.</li>
+            <li>Next middleware.</li>
+          </ul>
         </section>
       </section>
 
       <section>
         <section>
           <h2>Hydration</h2>
+          <h4>Fetch or create the requested resource.</h4>
+        </section>
+        <section>
+
+          <pre><code>
+$app->run(My\Http\Request::createFromGlobals());
+          </code></pre>
+          <pre><code>namespace My\Http;
+
+use Symfony\Component\HttpFoundation\Request as HttpFoundationRequest;
+
+class Request extends HttpFoundationRequest
+{
+  protected $requestArray;
+  protected $requestResource;
+
+  // include accessor methods...
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Silex</h4>
+          <pre><code>
+class ResourceHydrator
+{
+  protected $resourceFactory
+
+  public function __construct(ResourceFactory $resourceFactory)
+  {
+    $this->resourceFactory = $resourceFactory;
+  }
+
+  public function hydrateFromArray($request)
+  {
+    $resource = $this->resourceFactory->fromArray($resource->getResourceArray());
+    $request->setRequestResource($resource);
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Use the middleware to access domain services.</h4>
+          <br>
+          <h4 class="fragment">Use the right status code!</h4>
+          <ul class="fragment">
+            <li>404: Not Found</li>
+          </ul>
         </section>
       </section>
 
       <section>
         <section>
           <h2>Validation</h2>
+          <h4>Does this request follow my business rules?</h4>
+        </section>
+        <section>
+          <h4>Caution, validation will blur the lines!</h4>
+          <br>
+          <h4 class="fragment">Use the middleware to access domain services.</h4>
+          <br>
+          <div class="fragment">
+            <h4>Leverage a validation library</h4>
+            <h4>in your domain services.</h4>
+          </div>
+        </section>
+        <section>
+          <h4>Use the right status code!</h4>
+          <ul class="fragment">
+            <li>400: Bad Request</li>
+          </ul><br><br>
+          <h4 class="fragment">Provide useful error messages.</h4>
+          <ul class="fragment">
+            <li>application/api-problem+json</li>
+          </ul>
         </section>
       </section>
 
       <section>
         <section>
           <h2>[The Action]</h2>
+          <h4>The thing the route does!</h4>
+        </section>
+        <section>
+          <pre><code>
+class MyController
+{
+  protected $repository
+
+  public function __construct(RepositoryInterface $repository)
+  {
+    $this->repository = $repository;
+  }
+
+  public function postAction($request)
+  {
+    $this->repository->add($request->getResource)->flush();
+    return new Response('the content', Response::HTTP_CREATED;
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Use the right status code!</h4>
+          <ul class="fragment">
+            <li>200: OK</li>
+            <li>201: Created</li>
+            <li>204: No Content</li>
+          </ul>
         </section>
       </section>
 
       <section>
         <section>
           <h2>Serialization</h2>
+          <h4>Create the resource representation.</h4>
+        </section>
+        <section>
+          <h4>Don't re-invent the wheel.</h4>
+          <ul class="fragment">
+            <li>application/hal+json</li>
+            <li>application/vnd.api+json</li>
+            <li>application/vnd.collection</li>
+          </ul><br><br>
+          <h4 class="fragment">Use hypermedia to active RMM Level 3.</h4>
         </section>
       </section>
 
       <section>
         <section>
-          <h2>Other - post-request jobs</h2>
+          <h2>Post-request jobs</h2>
+          <h4>Do slow things after request is sent.</h4>
+          <ul>
+            <li class="fragment">Independent of the request/response life-cycle</li>
+            <li class="fragment">Requires <pre><code>fastcgi_finish_request();</code></pre></li>
+          </ul>
         </section>
+        <section>
+          <h4>Finish/Terminable middlewares are</h4>
+          <h4>defined independent of any routing.</h4>
+          <br>
+          <h4>Often, we want to apply them</h4>
+          <h4>to specific, individual routes.</h4>
+        </section>
+        <section>
+          <h4>Silex</h4>
+          <pre><code>
+$app->post('/my/resource', 'ResourceController:post')
+  ->after('FinishMiddlewareCreator:registerFinishMiddleware');
+          </code></pre>
+          <pre><code>
+class FinishMiddlewareCreator
+{
+  public function registerFinishMiddleware($request, $response, $app)
+  {
+    $app->finish('TheRealFinishMiddleware:doSomethingSlow');
+  }
+}
+          </code></pre>
+        </section>
+        <section>
+          <h4>Lumen</h4>
+          <pre><code>
+$app->routeMiddleware(['after' => MyAfterRouteMiddleware::class]);
+$app->post('my/resource/{id}', [
+  'uses' => 'ResourceController@get',
+  'middleware' => ['after'],
+]);
+          </code></pre>
+          <pre><code>
+class MyAfterRouteMiddleware
+{
+  protected $app
+
+  public function __construct($app)
+  {
+    $this->app = $app;
+  }
+
+  public function handle($request, Closure $next)
+  {
+    $response = $next($request);
+    $this->app->middleware([MyTerminableMiddleware::class]);
+    return $response;
+  }
+}
+          </code></pre>
+        </section>
+      </section>
+
+      <section>
+        <section>
+          <h2>tl;dr</h2>
+        </section>
+        <section>
+          <h4>A micro-framework is a simple collection of</h4>
+          <h4>a router, a container, and middlewares.</h4>
+          <br>
+          <div class="fragment">
+            <h4>It is the ideal platform for a fast, reliable</h4>
+            <h4>testable, maintainable, and RESTful API.</h4>
+          </div>
+        </section>
+        <section>
+          <h4>The middlewares allow the isolation</h4>
+          <h4>of each piece of API responsibility.</h4>
+          <br>
+          <div class="fragment">
+            <h4>They break API behaviors down into </h4>
+            <h4>interchangeable, reusable pieces of code.</h4>
+          </div>
+        </section>
+      </section>
+
+      <section>
+        <h2>Questions?</h2>
       </section>
 
     </div>
