@@ -2,4 +2,4 @@
 
 [View Presentation](https://austinsmorris.github.io/micro-frameworks-make-awesome-apis)
 
-Were you at Madison PHP 2015?  Please provide feedback on [Joind.in](https://joind.in/16015)!
+Were you at Madison PHP 2015?  Please provide feedback on [joind.in](https://joind.in/16015)!
