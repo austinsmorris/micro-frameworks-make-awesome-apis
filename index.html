@@ -830,7 +830,7 @@ class JsonDecode
   public function handle($request, Closure $next)
   {
     $decodedData = json_decode($request->getContent(), true);
-    if ($data === null) {
+    if ($decodedData === null) {
       return new Response('Invalid json content.', Response::HTTP_BAD_REQUEST);
     }
 
@@ -980,7 +980,7 @@ class MyController
             <li>application/vnd.api+json</li>
             <li>application/vnd.collection</li>
           </ul><br><br>
-          <h4 class="fragment">Use hypermedia to active RMM Level 3.</h4>
+          <h4 class="fragment">Use hypermedia to achieve RMM Level 3.</h4>
         </section>
       </section>
 
